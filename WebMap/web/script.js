@@ -1,5 +1,9 @@
 
-var ws_override = "http://mushroom.runnane.no:3000/" ;
+var ws_override = "";
+if (ws_override) {
+	let url = new URL(location.href);
+	ws_override = url.protocol + "//" + url.host + "/";
+}
 
 var follow = "";
 var mapLayer;
@@ -10,11 +14,22 @@ var pins = {};
 var server_config = {};
 const icons = {};
 var statusObj= {};
-const iconlist = ["dot", "dotx", "ore", "orex", "crypt","cryptx", "portal", "portalx", "start", "player"];
+const iconlist = {
+    "点": "dot",
+    "x点": "dotx",
+    "矿石": "ore",
+    "x矿石": "orex",
+    "地堡": "crypt",
+    "x地堡": "cryptx",
+    "传送门": "portal",
+    "x传送门": "portalx",
+    "出生点": "start",
+    "玩家": "player"
+};
 
-iconlist.forEach(function(iconname){
-    icons[iconname] = L.icon({
-        iconUrl: ws_override + 'icon_'+iconname+'.png',
+Object.keys(iconlist).forEach(function(name){
+    icons[iconlist[name]] = L.icon({
+        iconUrl: ws_override + 'icon_' + iconlist[name] + '.png',
         iconSize:     [30, 30], // size of the icon
         iconAnchor:   [15, 15], // point of the icon which will correspond to marker's location
     });
@@ -45,6 +60,11 @@ $(document).ready ( function(){
                });
        }
     });
+
+    $('#hideNoExplore').click(function(){
+        fogLayer.getElement().style.visibility = $('#hideNoExplore')[0].checked ? 'visible' : 'hidden';
+    })
+
     map = L.map('map', {
         crs: L.CRS.Simple,
         minZoom: -5
@@ -71,7 +91,7 @@ $(document).ready ( function(){
         login: (lines, message) => {
             const messageLines = message.split('\n');
             if(messageLines[1]){
-                addLog("login:  " + messageLines[1])
+                addLog("上线:  " + messageLines[1])
             }else{
                 console.log(messageLines);
             }
@@ -79,7 +99,7 @@ $(document).ready ( function(){
         logout: (lines, message) => {
             const messageLines = message.split('\n');
             if(messageLines[1]){
-                addLog("logout:  " + messageLines[1])
+                addLog("退出:  " + messageLines[1])
             }else{
                 console.log(messageLines);
             }
@@ -96,7 +116,7 @@ $(document).ready ( function(){
             if(messageLines[1]){
                 const messageParts = messageLines[1].split(',');
                 const clock = messageParts[2].split(':');
-                $("#overlayTitle").html(server_config.world_name + " / Day " + messageParts[0] + " / Time: " + clock[0] + ":" + clock[1]);
+                $("#overlayTitle").html("世界名字: " + server_config.world_name + " / 第 " + messageParts[0] + " 天 / 时间: " + clock[0] + ":" + clock[1]);
 
             }else{
                 console.log("malformed time: ", messageLines);
@@ -140,10 +160,9 @@ $(document).ready ( function(){
 
                 if(players[newPlayer.id] == undefined){
                     if(!statusObj.firstPlayer){
-                        addLog("Player " + newPlayer.name+" logged in");
+                        addLog("玩家 " + newPlayer.name+" 上线");
                     }else{
-                        addLog("Player " + newPlayer.name+" is online");
-
+                        addLog("玩家 " + newPlayer.name+" 已上线");
                     }
                     players[newPlayer.id] = newPlayer;
                     if(!newPlayer.hidden){
@@ -267,19 +286,20 @@ $(document).ready ( function(){
                 });
 
             var popup = "";
-            popup += "<strong>Text</strong>: <input type='text' name='pin_text_" + pin.id + "' value='" + pin.text + "'><br>";
-            popup += "<strong>Icon</strong>:";
+            popup += "<strong>名称</strong>: <input type='text' name='pin_text_" + pin.id + "' value='" + pin.text + "'><br>";
+            popup += "<strong>图标</strong>:";
             popup += " <select name='pin_icon_" + pin.id + "'>";
-            Object.keys(icons).forEach((idx) => {
-                popup += " <option value='"+idx+"' "+(idx==pin.type?"selected='selected'":"")+">"+idx+"</option>";
+            Object.keys(iconlist).forEach((name) => {
+                let value = iconlist[name];
+                popup += " <option value='" + value + "' " + (value==pin.type ? "selected='selected'" : "") + ">" + name + "</option>";
             });
 
             popup += " </select><br>";
-            popup += "<strong>Created by</strong>: " + pin.name + " (" + pin.uid + ")<br>";
+            popup += "<strong>创建自</strong>: " + pin.name + " (" + pin.uid + ")<br>";
             popup += "<strong>Id</strong>: " + pin.id + "<br>";
-            popup += "<strong>Pos</strong>: " + pin.x + " , " + pin.z + "<br>";
-            popup += "<button onclick=\"javascript:updatePin('" + pin.id + "');\">Update</button>";
-            popup += "<button onclick=\"javascript:deletePin('" + pin.id + "');\">Delete</button>";
+            popup += "<strong>坐标</strong>: " + pin.x + " , " + pin.z + "<br>";
+            popup += "<button onclick=\"javascript:updatePin('" + pin.id + "');\">更新</button>";
+            popup += "<button onclick=\"javascript:deletePin('" + pin.id + "');\">删除</button>";
 
             var newPopup = L.popup().
             setContent(popup);
@@ -292,12 +312,12 @@ $(document).ready ( function(){
             });
 
             if(!statusObj.firstPin){
-                addLog("Got new pin from server: " + pin.text);
+                addLog("获取到了新的标点: " + pin.text);
             }
         }else{
 
             if(!statusObj.firstPin){
-                addLog("Pin was updated from server: " + pin.text);
+                addLog("已更新标点: " + pin.text);
             }
             // Update to existing pin
             var popup = "";
@@ -312,8 +332,8 @@ $(document).ready ( function(){
             popup += "<strong>Created by</strong>: " + pin.name + " (" + pin.uid + ")<br>";
             popup += "<strong>Id</strong>: " + pin.id + "<br>";
             popup += "<strong>Pos</strong>: " + pin.x + " , " + pin.z + "<br>";
-            popup += "<button onclick=\"javascript:updatePin('" + pin.id + "');\">Update</button>";
-            popup += "<button onclick=\"javascript:deletePin('" + pin.id + "');\">Delete</button>";
+            popup += "<button onclick=\"javascript:updatePin('" + pin.id + "');\">更新</button>";
+            popup += "<button onclick=\"javascript:deletePin('" + pin.id + "');\">删除</button>";
 
             pins[pin.id].popup.setContent(popup);
             pins[pin.id].marker.icon = icons[pin.type];
@@ -328,7 +348,7 @@ $(document).ready ( function(){
                     // opacity: 0
                 });
             if(!firstRun){
-                addLog("Pin was updated from server: " + pin.text);
+                addLog("已更新标点: " + pin.text);
             }
         }
     };
@@ -371,7 +391,7 @@ $(document).ready ( function(){
             server_config = JSON.parse(text);
             const start_pos = parseVector3(server_config.world_start_pos);
             L.marker([ start_pos.z, start_pos.x ], {icon: icons['start'], draggable: false, autoPan: true}).addTo(map);
-            addLog("Server config downloaded");
+            addLog("加载服务器配置文件");
 
         });
 
@@ -395,7 +415,7 @@ $(document).ready ( function(){
                     setupPin(pin);
                 }
             });
-            addLog("Pins loaded from server");
+            addLog("加载服务器标点");
             firstRun=false;
         });
 
@@ -413,7 +433,7 @@ $(document).ready ( function(){
         Object.keys(players).forEach((key) => {
             const player = players[key];
             if (now - player.lastUpdate > 5000) {
-                addLog("player "+player.name+" logged out ");
+                addLog("玩家 "+player.name+" 退出");
                 if(follow == player.name){
                     follow = "";
                 }
@@ -444,7 +464,7 @@ $(document).ready ( function(){
 
             });
         }else{
-            playerHtml = "No players online";
+            playerHtml = "没有玩家在线";
         }
         $('#overlayPlayers').html(playerHtml);
 
@@ -455,11 +475,12 @@ $(document).ready ( function(){
 
 function addMarker(e){
     var popup = "";
-    popup += "<strong>Text</strong>: <input type='text' name='pin_text_new' value=''><br>";
-    popup += "<strong>Icon</strong>:";
+    popup += "<strong>名称</strong>: <input type='text' name='pin_text_new' value=''><br>";
+    popup += "<strong>图标</strong>:";
     popup += " <select name='pin_icon_new'>";
-    Object.keys(icons).forEach((idx) => {
-        popup += " <option value='"+idx+"' "+(idx=="dot"?"selected='selected'":"")+">"+idx+"</option>";
+    Object.keys(iconlist).forEach((name) => {
+        let value = iconlist[name];
+        popup += " <option value='" + value + "' " + (value==pin.type ? "selected='selected'" : "") + ">" + name + "</option>";
     });
 
     popup += " </select><br>"; popup += "<strong>Pos</strong>: " + e.latlng.lng + " , " + e.latlng.lat + "<br>";
@@ -523,7 +544,7 @@ const movePin = function(pin_id, posx, posz){
     if(!pin_id || posx == undefined || posz == undefined){
         return;
     }
-    alertify.confirm("Please confirm", "Are you sure you want to move '"+pins[pin_id].text+"' ?",
+    alertify.confirm("提示", "你确定要移动标点 '"+pins[pin_id].text+"' 吗?",
         function(){
             const url = ws_override + 'api/pin/' + pin_id + '?posx=' + posx + '&posz=' + posz;
             fetch(url, {mode: 'cors'})
@@ -553,7 +574,7 @@ const deletePin = function(pin_id){
         return;
     }
 
-    if(confirm("Are you sure you want to delete '"+pins[pin_id].text+"'?")){
+    if(confirm("你确定要删除标点 '"+pins[pin_id].text+"'?")){
         const url = ws_override + 'api/pin/' + pin_id + '?removePin=1';
         fetch(url, {mode: 'cors'})
             .then(res => res.text())
@@ -565,7 +586,6 @@ const deletePin = function(pin_id){
 
 const addLog = function(text){
     $('#overlayLog').html(new Date().toLocaleTimeString() + ": " + text + "<br>" + $('#overlayLog').html());
-   // $('#overlayLog').html("player " + player.name + " logged out <br>" + $('#overlayLog').html());
 }
 
 const unfollowPlayer = function(){

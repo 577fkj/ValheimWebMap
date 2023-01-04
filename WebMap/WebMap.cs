@@ -350,7 +350,7 @@ namespace WebMap {
                         float wx = (float)(j - num) * WebMapConfig.PIXEL_SIZE + num2;
                         float wy = (float)(i - num) * WebMapConfig.PIXEL_SIZE + num2;
                         Heightmap.Biome biome = WorldGenerator.instance.GetBiome(wx, wy);
-                        float biomeHeight = WorldGenerator.instance.GetBiomeHeight(biome, wx, wy);
+                        float biomeHeight = WorldGenerator.instance.GetBiomeHeight(biome, wx, wy, out Color _);
                         colorArray[i * WebMapConfig.TEXTURE_SIZE + j] = GetPixelColor(biome);
                         treeMaskArray[i * WebMapConfig.TEXTURE_SIZE + j] = GetMaskColor(wx, wy, biomeHeight, biome);
                         heightArray[i * WebMapConfig.TEXTURE_SIZE + j] = biomeHeight;

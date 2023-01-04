@@ -332,6 +332,7 @@ ASALocalRun/
 
 notes.txt
 ValheimWebMap.zip
+ValheimWebMap
 */web/main.js
 libs/UnityEngine*
 assembly_valheim.dll
