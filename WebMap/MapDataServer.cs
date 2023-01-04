@@ -171,7 +171,13 @@ namespace WebMap {
                     res.Headers.Add("Access-Control-Allow-Origin: *");
                     res.ContentType = "text/csv";
                     res.StatusCode = 200;
-                    var text = String.Join("\n", pins);
+                    var pins_new = new List<string>();
+                    foreach (string pin in pins) {
+                        var curr_pin = pin.Split(',');
+                        curr_pin[0] = curr_pin[0].Substring(8);
+                        pins_new.Add(String.Join(",", curr_pin));
+                    }
+                    var text = String.Join("\n", pins_new);
                     textBytes = Encoding.UTF8.GetBytes(text);
                     res.ContentLength64 = textBytes.Length;
                     res.Close(textBytes, true);
@@ -488,7 +494,7 @@ namespace WebMap {
 
         public void AddPin(string id, string pinId, string type, string name, Vector3 position, string pinText) {
             pins.Add($"{id},{pinId},{type},{name},{str(position.x)},{str(position.z)},{pinText}");
-            webSocketHandler.Sessions.Broadcast($"pin\n{id}\n{pinId}\n{type}\n{name}\n{str(position.x)},{str(position.z)}\n{pinText}");
+            webSocketHandler.Sessions.Broadcast($"pin\n{id.Substring(8)}\n{pinId}\n{type}\n{name}\n{str(position.x)},{str(position.z)}\n{pinText}");
             NeedSave = true;
         }
 
@@ -531,7 +537,7 @@ namespace WebMap {
             var pin = pins[idx];
             var pinParts = pin.Split(',');
             webSocketHandler.Sessions.Broadcast($"rmpin\n{pinParts[1]}");
-            webSocketHandler.Sessions.Broadcast($"pin\n{pinParts[0]}\n{pinParts[1]}\n{pinParts[2]}\n{pinParts[3]}\n{pinParts[4]},{pinParts[5]}\n{pinParts[6]}");
+            webSocketHandler.Sessions.Broadcast($"pin\n{pinParts[0].Substring(8)}\n{pinParts[1]}\n{pinParts[2]}\n{pinParts[3]}\n{pinParts[4]},{pinParts[5]}\n{pinParts[6]}");
 
         }
     }
